@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-
+import { AuthStyles as styles } from '../styles';
 
 const AuthScreen = () => {
 
@@ -19,7 +19,7 @@ const AuthScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={styles.container}>
       <Button onPress={onLogin} mode='contained' >Login with Google</Button>
     </View>
   )

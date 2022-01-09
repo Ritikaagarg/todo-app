@@ -9,7 +9,9 @@ const Stack = createStackNavigator();
 const RootNavigator = ({ authState }: any) => {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={{
+        headerShown: false
+      }}>
         {authState === 'LoggedIn' ?
           (
             <Stack.Screen name="Home" component={HomeScreen} />

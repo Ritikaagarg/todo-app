@@ -61,5 +61,3 @@ buck-out/
 
 # Config
 .env
-.vscode/
-.idea/

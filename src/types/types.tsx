@@ -1,11 +1,3 @@
-export type User = {
-  displayName: string | null;
-  email: string | null;
-  emailVerified: boolean | null;
-  photoURL: string | null;
-  uid: string | null;
-}
-
 export type Todo = {
   id: string;
   remark: string;
@@ -13,3 +5,8 @@ export type Todo = {
   createdAt: object;
   userId: string;
 }
+
+export type RootStackParamList = {
+  Home: undefined;
+  Auth: undefined;
+};

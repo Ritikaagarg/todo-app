@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
+import { Appearance } from 'react-native';
+import { DefaultTheme, Provider as PaperProvider, DarkTheme } from 'react-native-paper';
 import Root from './src';
 
-const theme = {
+// Change theme 
+const customTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
@@ -10,6 +12,18 @@ const theme = {
     accent: 'yellow',
   },
 };
+
+const customDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: 'tomato',
+    text: 'tomato'
+  }
+}
+
+const colorScheme = Appearance.getColorScheme();
+const theme = colorScheme === 'dark' ? customDarkTheme : customTheme;
 
 export default function App() {
   return (

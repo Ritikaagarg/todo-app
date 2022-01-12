@@ -1,79 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, FlatList, ActivityIndicator, Keyboard } from 'react-native';
 import { Text, Appbar, Button, TextInput, Checkbox, useTheme } from 'react-native-paper';
 import firestore, { firebase } from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { useFocusEffect } from '@react-navigation/native';
 import { TodoStyles as styles } from '../styles';
-import { Todo, User } from '../types/types';
+import { Todo } from '../types/types';
+import TodoItem from '../components/todo-item';
+import AddTodo from '../components/add-todo';
 
 const todoListRef = firestore().collection('todoList');
 
-const renderEmptyComponent = () => {
-  return (
-    <View style={styles.emptyList}>
-      <Text style={styles.emptyListText}>There are no tasks added yet</Text>
-    </View>
-  );
-};
-
-const renderSeparator = () => {
-  return <View style={styles.separator} />;
-};
-
 const HomeScreen = () => {
   const { colors } = useTheme();
+  const [userInfo, setUserInfo] = useState<FirebaseAuthTypes.User | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [taskInput, setTaskInput] = useState<string>('');
-  const [isApiLoading, setApiLoading] = useState<boolean>(true);
-  const [userInfo, setUserInfo] = useState<User | null>(null);
+  const [isFetching, setisFetching] = useState<boolean>(true);
+  const isLoggedInId = userInfo?.uid;
 
-  useFocusEffect(
-    useCallback(() => {
-      getUserInfo();
-    }, [])
-  );
-
-  const updateTodoList = (list: Todo[]) => {
-    setTodos(list);
-    setApiLoading(false);
-  };
-
-  useEffect(() => {
-    if (userInfo) {
-      const subscribe = todoListRef
-        .where('userId', '==', userInfo.uid)
-        .orderBy('isDone', 'asc')
-        .onSnapshot((querySnapshot: any) => {
-          if (querySnapshot) {
-            let list: Todo[] = [];
-            querySnapshot?.docs?.map((docSnapshot: any) => {
-              list = [
-                ...list,
-                {
-                  ...docSnapshot.data(),
-                  id: docSnapshot.id,
-                },
-              ];
-            });
-            console.log("list", list)
-            updateTodoList(list);
-          } else {
-            setTodos([]);
-            setApiLoading(false);
-          }
-        });
-      return () => {
-        typeof subscribe === 'function' ? subscribe() : null;
-      };
-    }
-  }, [userInfo]);
+  useFocusEffect(() => {
+    getUserInfo();
+  });
 
   const getUserInfo = async () => {
     const currentUser = await auth().currentUser;
     setUserInfo(currentUser);
   };
+
+  const updateTodoList = useCallback((list: Todo[]) => {
+    setTodos(list);
+    setisFetching(false);
+  }, []);
 
   const updateTodoDone = useCallback((item: Todo) => {
     todoListRef.doc(item.id).update({
@@ -87,26 +46,60 @@ const HomeScreen = () => {
     });
   }, []);
 
-  const addTodo = useCallback(async () => {
-    todoListRef.add({
+  const addTodo = async () => {
+    Keyboard.dismiss()
+    await todoListRef.add({
       isDone: false,
       remark: taskInput,
       userId: userInfo?.uid,
       createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
     });
     setTaskInput('');
-  }, [taskInput, userInfo]);
+  };
 
-  const deleteTodo = useCallback((item: Todo) => {
-    todoListRef.doc(item.id).delete();
-  }, []);
+  const deleteTodo = async (item: Todo) => {
+    await todoListRef.doc(item.id).delete();
+  };
+
+  const fetchtodoList = () => {
+    return todoListRef
+      .where('userId', '==', userInfo?.uid)
+      .orderBy('isDone', 'asc')
+      .onSnapshot((querySnapshot: any) => {
+        let list: Todo[] = [];
+        if (querySnapshot) {
+          querySnapshot.forEach((docSnapshot: any) => {
+            list.push({
+              ...docSnapshot.data(),
+              id: docSnapshot.id,
+            })
+          });
+          updateTodoList(list);
+        }
+        else {
+          setisFetching(false);
+        }
+      });
+  }
+
+  useEffect(() => {
+    if (isLoggedInId) {
+      const subscriber = fetchtodoList()
+      return (() => {
+        console.log("called on unmount")
+        if (subscriber) {
+          subscriber()
+        }
+      })
+    }
+  }, [isLoggedInId]);
 
   const signOut = useCallback(async () => {
     try {
       setTodos([]);
       setTaskInput('');
       setUserInfo(null);
-      setApiLoading(true);
+      setisFetching(true);
       auth().signOut();
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
@@ -115,72 +108,62 @@ const HomeScreen = () => {
     }
   }, []);
 
-  const renderItem = useCallback(({ item }) => {
-    let date = new Date(item.createdAt?.seconds * 1000).toLocaleDateString();
+  const renderItem = ({ item }: any) => {
     return (
-      <View style={styles.addContainer}>
-        <Checkbox
-          status={item.isDone ? 'checked' : 'unchecked'}
-          onPress={() => updateTodoDone(item)}
-          color={colors.primary}
-        />
-        <View style={styles.remarkContainer}>
-          {item.isDone ? <Text style={styles.cutRemark}>
-            {item.remark}
-          </Text>
-            : <TextInput style={item.isDone ? styles.cutRemark : styles.remark} value={item.remark} dense={true} underlineColor='#FFF' onChangeText={(text) => updateTodoRemark(item, text)} />}
-          <Text style={styles.timestamp}>Created At: {date}</Text>
-        </View>
-        <Button color={colors.primary} onPress={() => deleteTodo(item)}>
-          Delete
-        </Button>
+      <TodoItem
+        item={item}
+        onUpdateTodoDone={(item) => updateTodoDone(item)}
+        onUpdateTodoRemark={(text) => {
+          updateTodoRemark(item, text)
+        }}
+        onDeleteTodo={(item) => deleteTodo(item)}
+      />
+    );
+  };
+
+  const renderEmptyComponent = () => {
+    return (
+      <View style={styles.emptyList}>
+        <Text style={styles.emptyListText}>There are no tasks added yet</Text>
       </View>
     );
-  }, [deleteTodo, updateTodoDone, updateTodoRemark, colors]);
+  };
+
+  const renderSeparator = () => {
+    return <View style={styles.separator} />;
+  };
 
   const handleTextChange = useCallback((value: string) => {
     setTaskInput(value);
   }, []);
 
   return (
-    <>
+    <View>
       <Appbar.Header>
         <Appbar.Content
-          title={`Hi ${userInfo?.displayName},`}
-          subtitle="Write your tasks to do here!"
+          title={`Hi ${userInfo?.displayName}`}
         />
         <Appbar.Action icon="logout" onPress={signOut} />
       </Appbar.Header>
-      <View style={styles.addContainer}>
-        <TextInput
-          mode="outlined"
-          label="Add Some Task"
-          placeholder="Type something"
-          theme={{ colors: { primary: colors.primary } }}
-          onChangeText={handleTextChange}
-          value={taskInput}
-          style={styles.addTaskField}
-        />
-        <Button
-          color={colors.primary}
-          style={styles.button}
-          disabled={taskInput.length === 0}
-          onPress={addTodo}>
-          ADD
-        </Button>
-      </View>
-      {isApiLoading ? (
+      <Text style={styles.headerText}>Write your tasks to do here!</Text>
+      <AddTodo
+        taskInput={taskInput}
+        handleTextChange={(text) => handleTextChange(text)}
+        addTodo={addTodo}
+      />
+      {isFetching ? (
         <ActivityIndicator size="large" color={colors.primary} />
       ) : (
         <FlatList
           data={todos}
-          renderItem={renderItem}
+          keyExtractor={todo => todo.id}
+          renderItem={todo => renderItem(todo)}
           ListEmptyComponent={renderEmptyComponent}
           ItemSeparatorComponent={renderSeparator}
           style={styles.list}
         />
       )}
-    </>
+    </View>
   );
 };
 

@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { RootStackParamList } from '../types/types';
 
 import { AuthScreen, HomeScreen } from '../screens';
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
 const RootNavigator = ({ authState }: any) => {
   return (

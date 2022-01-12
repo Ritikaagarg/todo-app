@@ -4,14 +4,9 @@ interface Styles {
   separator: ViewStyle,
   emptyList: ViewStyle,
   emptyListText: TextStyle,
-  addTaskField: TextStyle,
   list: ViewStyle,
-  button: ViewStyle,
-  remarkContainer: ViewStyle,
-  remark: TextStyle,
-  cutRemark: TextStyle,
-  addContainer: ViewStyle,
-  timestamp: TextStyle,
+  addContainer: ViewStyle;
+  headerText: TextStyle
 }
 
 const TodoStyles = StyleSheet.create<Styles>({
@@ -29,35 +24,18 @@ const TodoStyles = StyleSheet.create<Styles>({
     fontWeight: 'bold',
     color: 'gray',
   },
-  addTaskField: {
-    marginLeft: 15,
-    marginVertical: 15,
-    flex: 1,
-  },
   list: {
     marginTop: 15,
     marginHorizontal: 15,
   },
-  button: {
-    justifyContent: 'center',
-  },
-  remarkContainer: {
-    flex: 1,
-  },
-  remark: {
-    fontWeight: 'bold',
-  },
-  cutRemark: {
-    fontWeight: 'bold',
-    textDecorationLine: 'line-through',
-    color: 'gray',
-  },
   addContainer: {
     flexDirection: 'row',
   },
-  timestamp: {
-    color: 'gray',
-  },
+  headerText: {
+    marginHorizontal: 15,
+    marginTop: 15,
+    fontWeight: 'bold'
+  }
 });
 
 export default TodoStyles;
